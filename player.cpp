@@ -1,4 +1,9 @@
 #include "player.h"
+#include <vector>
+
+using namespace std;
+
+#define BOARD_SIZE 8
 
 /*
  * Constructor for the player; initialize everything here. The side your AI is
@@ -14,6 +19,16 @@ Player::Player(Side side) {
      * precalculating things, etc.) However, remember that you will only have
      * 30 seconds.
      */
+    board = new Board();
+    my_side = side;
+    if (my_side == BLACK)
+    {
+		other_side = WHITE;
+	}
+	else
+	{
+		other_side = BLACK;
+	}
 }
 
 /*
@@ -42,5 +57,30 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
      * TODO: Implement how moves your AI should play here. You should first
      * process the opponent's opponents move before calculating your own move
      */ 
-    return NULL;
+    if (opponentsMove != NULL)
+    {
+		board->doMove(opponentsMove, other_side);
+	}
+	if (board->isDone() || !board->hasMoves(my_side))
+	{
+		return NULL;
+	}
+	vector<Move *> possible_moves;
+	for (int i = 0; i < BOARD_SIZE; i++)
+	{
+		for (int j = 0; j < BOARD_SIZE; j++)
+		{
+			Move *move = new Move(i, j);
+			if (board->checkMove(move, my_side))
+			{
+				possible_moves.push_back(move);
+			}
+			else
+			{
+				delete move;
+			}
+		}
+	}
+	board->doMove(possible_moves[0], my_side);
+	return possible_moves[0];
 }

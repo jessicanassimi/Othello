@@ -149,6 +149,14 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
 	
 }
 
+/*
+ * @brief Finds all possible moves for a given turn.
+ * 
+ * @param *board  the board on which we want to find the possible moves
+ * @param side    the player that wants to make a move
+ * 
+ * @return a vector of all possible moves for that player
+ */
 vector<Move *> Player::get_possible_moves(Board *board, Side side)
 {
 	vector<Move *> possible_moves;
@@ -170,6 +178,14 @@ vector<Move *> Player::get_possible_moves(Board *board, Side side)
 	return possible_moves;
 }
 
+/*
+ * @brief Computes a score for a given board based on the difference between 
+ *        the number of my stones and the number of the other player's stones.
+ * 
+ * @param *board  the given board 
+ * 
+ * @return  the score
+ */
 int Player::compute_score(Board *board)
 {
 	if (my_side == WHITE)
@@ -182,6 +198,13 @@ int Player::compute_score(Board *board)
 	}
 }
 
+/*
+ * @brief Computes the score in a better way.
+ * 
+ * @param *board  the given board
+ * 
+ * @return  the score
+ */
 int Player::competitive_compute_score(Board *board)
 {
 	

@@ -1,9 +1,7 @@
 #include "player.h"
-#include <vector>
+
 
 using namespace std;
-
-#define BOARD_SIZE 8
 
 /*
  * Constructor for the player; initialize everything here. The side your AI is
@@ -29,6 +27,26 @@ Player::Player(Side side) {
 	{
 		other_side = BLACK;
 	}
+	for (int i = 0; i < BOARD_SIZE; i++)
+	{
+		for (int j = 0; j < BOARD_SIZE; j++)
+		{
+			heuristic[i][j] = 0;
+		}
+	}
+	heuristic[0][0] = 15;
+	heuristic[0][BOARD_SIZE-1] = 15;
+	heuristic[BOARD_SIZE-1][0] = 15;
+	heuristic[BOARD_SIZE-1][BOARD_SIZE-1] = 15;
+	
+	heuristic[0][1] = -5;
+	heuristic[1][0] = -5;
+	heuristic[BOARD_SIZE-2][0] = -5;
+	heuristic[BOARD_SIZE-1][1] = -5;
+	heuristic[0][BOARD_SIZE-2] = -5;
+	heuristic[1][BOARD_SIZE-1] = -5;
+	heuristic[BOARD_SIZE-1][BOARD_SIZE-2] = -5;
+	heuristic[BOARD_SIZE-2][BOARD_SIZE-1] = -5;
 }
 
 /*
@@ -65,13 +83,79 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
 	{
 		return NULL;
 	}
+	if (testingMinimax)
+	{
+		vector<Move *> possible_moves = get_possible_moves(board, my_side);
+		int maximum = -100000;
+		Move *bestMove = NULL;
+		for (int i = 0; i < possible_moves.size(); i++)
+		{
+			Board *copy = board->copy();
+			copy->doMove(possible_moves[i], my_side);
+			vector<Move *> level1 = get_possible_moves(copy, other_side);
+			int minimum = 10000;
+			for (int j = 0; j < level1.size(); j++)
+			{
+				Board *copy2 = copy->copy();
+				copy2->doMove(level1[j], other_side);
+				int score = compute_score(copy2);
+				if (score < minimum)
+				{
+					minimum = score;
+				}
+			}
+			if (minimum > maximum) 
+			{
+			    maximum = minimum;
+			    bestMove = possible_moves[i];
+			}
+		}
+		board->doMove(bestMove, my_side);
+		return bestMove;
+	}
+	else
+	{
+		
+		vector<Move *> possible_moves = get_possible_moves(board, my_side);
+		int maximum = -100000;
+		Move *bestMove = NULL;
+		for (int i = 0; i < possible_moves.size(); i++)
+		{
+			Board *copy = board->copy();
+			copy->doMove(possible_moves[i], my_side);
+			vector<Move *> level1 = get_possible_moves(copy, other_side);
+			int minimum = 10000;
+			for (int j = 0; j < level1.size(); j++)
+			{
+				Board *copy2 = copy->copy();
+				copy2->doMove(level1[j], other_side);
+				int score = competitive_compute_score(copy2);
+				if (score < minimum)
+				{
+					minimum = score;
+				}
+			}
+			if (minimum > maximum) 
+			{
+			    maximum = minimum;
+			    bestMove = possible_moves[i];
+			}
+		}
+		board->doMove(bestMove, my_side);
+		return bestMove;
+	}
+	
+}
+
+vector<Move *> Player::get_possible_moves(Board *board, Side side)
+{
 	vector<Move *> possible_moves;
 	for (int i = 0; i < BOARD_SIZE; i++)
 	{
 		for (int j = 0; j < BOARD_SIZE; j++)
 		{
 			Move *move = new Move(i, j);
-			if (board->checkMove(move, my_side))
+			if (board->checkMove(move, side))
 			{
 				possible_moves.push_back(move);
 			}
@@ -81,6 +165,38 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
 			}
 		}
 	}
-	board->doMove(possible_moves[0], my_side);
-	return possible_moves[0];
+	return possible_moves;
+}
+
+int Player::compute_score(Board *board)
+{
+	if (my_side == WHITE)
+	{
+		return board->countWhite() - board->countBlack();
+	}
+	else
+	{
+		return board->countBlack() - board->countWhite();
+	}
+}
+
+int Player::competitive_compute_score(Board *board)
+{
+	
+	int sum = 0;
+	for (int i = 0; i < BOARD_SIZE; i++) 
+	{
+		for (int j = 0; j < BOARD_SIZE; j++) 
+		{
+			if (board->get(my_side, i, j)) 
+			{
+				sum += heuristic[i][j];	
+			}
+			else if (board->get(other_side, i, j)) 
+			{
+				sum -= heuristic[i][j];	
+			}
+		}
+	}
+	return sum;
 }

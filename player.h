@@ -19,6 +19,7 @@ public:
     vector<Move *> get_possible_moves(Board *board, Side side);
     int compute_score(Board *board);
     int competitive_compute_score(Board *board);
+    int compute_minimax(Board *board, int depth, Side side, int max, int min);
 
     // Flag to tell if the player is running within the test_minimax context
     bool testingMinimax;

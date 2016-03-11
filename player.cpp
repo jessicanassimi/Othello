@@ -1,7 +1,8 @@
 #include "player.h"
 
-
 using namespace std;
+
+#define DEPTH 5
 
 // Testing Github 
 
@@ -36,11 +37,22 @@ Player::Player(Side side) {
 			heuristic[i][j] = 0;
 		}
 	}
-	heuristic[0][0] = 15;
-	heuristic[0][BOARD_SIZE-1] = 15;
-	heuristic[BOARD_SIZE-1][0] = 15;
-	heuristic[BOARD_SIZE-1][BOARD_SIZE-1] = 15;
+	// corners
+	heuristic[0][0] = 30;
+	heuristic[0][BOARD_SIZE-1] = 30;
+	heuristic[BOARD_SIZE-1][0] = 30;
+	heuristic[BOARD_SIZE-1][BOARD_SIZE-1] = 30;
 	
+	// edges not next to corners
+	for (int i = 2; i < BOARD_SIZE-2; i++)
+	{
+		heuristic[0][i] = 5;
+		heuristic[i][0] = 5;
+		heuristic[BOARD_SIZE-1][i] = 5;
+		heuristic[i][BOARD_SIZE-1] = 5;
+	}
+	
+	// next to or diagonal to corners
 	heuristic[0][1] = -5;
 	heuristic[1][0] = -5;
 	heuristic[BOARD_SIZE-2][0] = -5;
@@ -49,15 +61,16 @@ Player::Player(Side side) {
 	heuristic[1][BOARD_SIZE-1] = -5;
 	heuristic[BOARD_SIZE-1][BOARD_SIZE-2] = -5;
 	heuristic[BOARD_SIZE-2][BOARD_SIZE-1] = -5;
+	heuristic[1][1] = -5;
+	heuristic[1][BOARD_SIZE-2] = -5;
+	heuristic[BOARD_SIZE-2][1] = -5;
+	heuristic[BOARD_SIZE-2][BOARD_SIZE-2] = -5;
 }
 
 /*
  * Destructor for the player.
  */
 Player::~Player() {
-	/*
-	 * TODO
-	 */
 }
 
 /*
@@ -90,13 +103,13 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
 		vector<Move *> possible_moves = get_possible_moves(board, my_side);
 		int maximum = -100000;
 		Move *bestMove = NULL;
-		for (int i = 0; i < possible_moves.size(); i++)
+		for (unsigned int i = 0; i < possible_moves.size(); i++)
 		{
 			Board *copy = board->copy();
 			copy->doMove(possible_moves[i], my_side);
 			vector<Move *> level1 = get_possible_moves(copy, other_side);
 			int minimum = 10000;
-			for (int j = 0; j < level1.size(); j++)
+			for (unsigned int j = 0; j < level1.size(); j++)
 			{
 				Board *copy2 = copy->copy();
 				copy2->doMove(level1[j], other_side);
@@ -121,27 +134,17 @@ Move *Player::doMove(Move *opponentsMove, int msLeft) {
 		vector<Move *> possible_moves = get_possible_moves(board, my_side);
 		int maximum = -100000;
 		Move *bestMove = NULL;
-		for (int i = 0; i < possible_moves.size(); i++)
+		for (unsigned int i = 0; i < possible_moves.size(); i++)
 		{
 			Board *copy = board->copy();
 			copy->doMove(possible_moves[i], my_side);
-			vector<Move *> level1 = get_possible_moves(copy, other_side);
-			int minimum = 10000;
-			for (int j = 0; j < level1.size(); j++)
-			{
-				Board *copy2 = copy->copy();
-				copy2->doMove(level1[j], other_side);
-				int score = competitive_compute_score(copy2);
-				if (score < minimum)
-				{
-					minimum = score;
-				}
-			}
+			int minimum = compute_minimax(copy, DEPTH, other_side, maximum, 100000);
 			if (minimum > maximum) 
 			{
 			    maximum = minimum;
 			    bestMove = possible_moves[i];
 			}
+			delete copy;
 		}
 		board->doMove(bestMove, my_side);
 		return bestMove;
@@ -224,4 +227,78 @@ int Player::competitive_compute_score(Board *board)
 		}
 	}
 	return sum;
+}
+
+/*
+ * @brief Computes a variation of the minimax score.
+ * 
+ * @param *board the board on which to compute the score
+ * @param depth  the depth level up to which to compute the score
+ * @param side   the current side that is playing
+ * @param max    the current maximum value
+ * @param min    the current minimum value
+ * 
+ * @return the score based on the variation of minimax
+ */
+int Player::compute_minimax(Board *board, int depth, Side side, int max, int min)
+{
+	int board_score = competitive_compute_score(board);
+	if (board->isDone() || !board->hasMoves(side) || depth == 0)
+	{
+		return board_score;
+	}
+	if (side == other_side)
+	{
+		vector<Move *> level = get_possible_moves(board, side);
+		int minimum = 1000;
+		for (unsigned int j = 0; j < level.size(); j++)
+		{
+			Board *copy = board->copy();
+			copy->doMove(level[j], side);
+			int score = compute_minimax(copy, depth - 1, my_side, max, minimum);
+			if (score < minimum)
+			{
+				minimum = score;
+			}
+			delete copy;
+		}
+		for (unsigned int i = 0; i < level.size(); i++)
+		{
+			delete level[i];
+		}
+		return minimum;
+	}
+	else if (side == my_side)
+	{
+		vector<Move *> level = get_possible_moves(board, side);
+		int maximum = -1000;
+		for (unsigned int j = 0; j < level.size(); j++)
+		{
+			Board *copy = board->copy();
+			copy->doMove(level[j], side);
+			int score = compute_minimax(copy, depth - 1, other_side, maximum, min);
+			if (score > maximum)
+			{
+				maximum = score;
+			}
+			delete copy;
+			if (maximum < max)
+			{
+				for (unsigned int i = 0; i < level.size(); i++)
+				{
+					delete level[i];
+				}
+				return maximum;
+			}
+		}
+		for (unsigned int i = 0; i < level.size(); i++)
+		{
+			delete level[i];
+		}
+		return maximum;
+	}
+	else
+	{
+		return competitive_compute_score(board);
+	}
 }
